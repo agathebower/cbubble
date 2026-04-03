@@ -1,0 +1,19 @@
+ted@blackbox:~/dev/cbubble$ ./cbubble-bootstrap.sh
+=== Creating cbubble project structure ===
+
+=== Done! ===
+Project created in ./cbubble
+
+Next steps:
+  cd cbubble
+  ./scripts/setup.sh
+  vim .env
+  ./scripts/run.sh
+
+To push to GitHub:
+  cd cbubble
+  git init && git add -A
+  git commit -m 'feat: initial cBubble'
+  git remote add origin git@github.com:YOUR_USER/cbubble.git
+  git push -u origin main
+

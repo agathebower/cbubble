@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>cBubble</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header id="app-header">
+        <div class="header-inner">
+            <h1 class="logo">c<span>Bubble</span></h1>
+            <div class="header-actions">
+                <button id="btn-refresh" class="icon-btn" title="Refresh">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <nav id="category-tabs" class="category-tabs">
+            <button class="cat-tab active" data-category="all">All</button>
+        </nav>
+    </header>
+    <main id="feed" class="feed-grid"></main>
+    <div id="loader" class="loader"><div class="spinner"></div><span>Loading stories…</span></div>
+    <div id="empty-state" class="empty-state hidden">
+        <p>No stories yet. Feeds are being collected…</p>
+        <button id="btn-retry" class="btn-primary">Retry</button>
+    </div>
+    <div id="popup-overlay" class="popup-overlay hidden">
+        <div class="popup-card">
+            <div class="popup-header">
+                <span class="popup-source"></span>
+                <span class="popup-badge"></span>
+                <button class="popup-close">&times;</button>
+            </div>
+            <h2 class="popup-title"></h2>
+            <div class="popup-abstract">
+                <div class="popup-loading">Generating abstract…</div>
+                <p class="popup-text"></p>
+            </div>
+            <div class="popup-verification-note hidden"><small></small></div>
+            <div class="popup-footer">
+                <a class="popup-link" href="#" target="_blank" rel="noopener">Read full article →</a>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/feed.js"></script>
+    <script src="/static/js/popup.js"></script>
+</body>
+</html>

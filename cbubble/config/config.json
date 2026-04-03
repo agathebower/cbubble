@@ -1,0 +1,25 @@
+{
+  "active_provider": "cerebras",
+  "fallback_provider": "groq",
+  "auto_fallback_on_error": true,
+  "refresh_interval_minutes": 30,
+  "max_abstract_sentences": 5,
+  "stories_per_page": 20,
+  "sources": [
+    {"name": "The Hacker News", "url": "https://thehackernews.com", "rss": "https://feeds.feedburner.com/TheHackersNews", "category": "cyber", "enabled": true},
+    {"name": "BleepingComputer", "url": "https://bleepingcomputer.com", "rss": "https://www.bleepingcomputer.com/feed/", "category": "cyber", "enabled": true},
+    {"name": "Dark Reading", "url": "https://darkreading.com", "rss": "https://www.darkreading.com/rss.xml", "category": "cyber", "enabled": true},
+    {"name": "SecurityWeek", "url": "https://securityweek.com", "rss": "https://feeds.feedburner.com/securityweek", "category": "cyber", "enabled": true},
+    {"name": "Cybersecurity Dive", "url": "https://cybersecuritydive.com", "rss": "https://www.cybersecuritydive.com/feeds/news/", "category": "cyber", "enabled": true},
+    {"name": "Simon Willison's Blog", "url": "https://simonwillison.net", "rss": "https://simonwillison.net/atom/everything/", "category": "ai", "enabled": true},
+    {"name": "Hugging Face Blog", "url": "https://huggingface.co/blog", "rss": "https://huggingface.co/blog/feed.xml", "category": "ai", "enabled": true},
+    {"name": "LWN.net", "url": "https://lwn.net", "rss": "https://lwn.net/headlines/rss", "category": "dev", "enabled": true},
+    {"name": "Lobsters", "url": "https://lobste.rs", "rss": "https://lobste.rs/rss", "category": "dev", "enabled": true},
+    {"name": "Hacker News", "url": "https://news.ycombinator.com", "rss": "https://hnrss.org/frontpage", "category": "dev", "enabled": true},
+    {"name": "PortSwigger Research", "url": "https://portswigger.net/research", "rss": "https://portswigger.net/research/rss", "category": "offensive", "enabled": true},
+    {"name": "VulDB", "url": "https://vuldb.com", "rss": "https://vuldb.com/?rss.recent", "category": "offensive", "enabled": true},
+    {"name": "Exploit Database", "url": "https://exploit-db.com", "rss": "https://www.exploit-db.com/rss.xml", "category": "offensive", "enabled": true},
+    {"name": "Krebs on Security", "url": "https://krebsonsecurity.com", "rss": "https://krebsonsecurity.com/feed/", "category": "threat_intel", "enabled": true},
+    {"name": "Recorded Future Blog", "url": "https://recordedfuture.com/blog", "rss": "https://www.recordedfuture.com/feed", "category": "threat_intel", "enabled": true}
+  ]
+}
