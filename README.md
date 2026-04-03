@@ -6,7 +6,7 @@ that uses LLMs to generate verified story abstracts.
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USER/cbubble.git
+git clone https://github.com/agathebower/cbubble.git
 cd cbubble
 ./scripts/setup.sh
 vim .env   # add CEREBRAS_API_KEY and/or GROQ_API_KEY
