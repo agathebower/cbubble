@@ -22,12 +22,16 @@ async def collect_source(source: Source):
         )
         if story_id:
             new_count += 1
-            content = await fetch_article_content(item.url)
-            if content:
+            content, og_image = await fetch_article_content(item.url)
+            if content or (og_image and not item.image_url):
                 db = await get_db()
                 try:
-                    await db.execute("UPDATE stories SET content_raw = ? WHERE id = ?",
-                                     (content, story_id))
+                    if content:
+                        await db.execute("UPDATE stories SET content_raw = ? WHERE id = ?",
+                                         (content, story_id))
+                    if og_image and not item.image_url:
+                        await db.execute("UPDATE stories SET image_url = ? WHERE id = ?",
+                                         (og_image, story_id))
                     await db.commit()
                 finally:
                     await db.close()

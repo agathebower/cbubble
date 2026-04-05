@@ -56,19 +56,38 @@ async def fetch_rss(source_name, rss_url, category) -> list[FeedItem]:
     return items
 
 
-async def fetch_article_content(url) -> str | None:
+async def fetch_article_content(url) -> tuple[str | None, str | None]:
+    """Fetch article text and og:image URL from the page.
+
+    Returns (content, og_image_url).
+    """
     try:
         async with httpx.AsyncClient(timeout=20.0, headers=HEADERS, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Extract Open Graph / Twitter image before stripping tags
+        og_image = None
+        for meta in soup.find_all("meta"):
+            prop = meta.get("property", "") or meta.get("name", "")
+            if prop == "og:image" and meta.get("content"):
+                og_image = meta["content"].strip()
+                break
+        if not og_image:
+            for meta in soup.find_all("meta"):
+                prop = meta.get("property", "") or meta.get("name", "")
+                if prop in ("twitter:image", "twitter:image:src") and meta.get("content"):
+                    og_image = meta["content"].strip()
+                    break
+
         for tag in soup(["script", "style", "nav", "footer", "header", "aside", "iframe"]):
             tag.decompose()
         article = soup.find("article") or soup.find("main") or soup.find("div", class_="post-content")
         text = (article or soup).get_text(separator="\n", strip=True)
         lines = [l.strip() for l in text.splitlines() if l.strip()]
         content = "\n".join(lines)[:8000]
-        return content if len(content) > 100 else None
+        return (content if len(content) > 100 else None, og_image)
     except Exception as e:
         log.error("Failed to fetch article from %s: %s", url, e)
-        return None
+        return (None, None)
