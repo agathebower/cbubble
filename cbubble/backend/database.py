@@ -2,12 +2,13 @@
 
 import aiosqlite
 import logging
+import os
 from pathlib import Path
 from datetime import datetime, timezone
 
 log = logging.getLogger("cbubble.db")
 
-DB_PATH = Path(__file__).resolve().parent.parent / "cbubble.db"
+DB_PATH = Path(os.environ.get("CBUBBLE_DB_PATH", Path(__file__).resolve().parent.parent / "cbubble.db"))
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS stories (
