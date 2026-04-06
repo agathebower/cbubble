@@ -1,7 +1,4 @@
 {
-  "active_provider": "cerebras",
-  "fallback_provider": "groq",
-  "auto_fallback_on_error": true,
   "refresh_interval_minutes": 30,
   "max_abstract_sentences": 5,
   "stories_per_page": 20,

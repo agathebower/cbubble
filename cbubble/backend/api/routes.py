@@ -40,4 +40,4 @@ async def list_sources():
 async def reload_config():
     config = load_config()
     return {"status": "reloaded", "sources": len(config.sources),
-            "active_provider": config.active_provider}
+            "provider": "cerebras"}

@@ -1,4 +1,4 @@
-"""Configuration loader with auto-reload support."""
+"""Configuration loader."""
 
 import json
 import os
@@ -24,52 +24,54 @@ class Source:
 
 
 @dataclass
-class LLMProviderConfig:
-    provider: str
-    api_key_env: str
+class CerebrasConfig:
     base_url: str
-    model: str
+    abstract_api_key_env: str
+    validate_api_key_env: str
     max_tokens: int = 1024
     temperature: float = 0.3
     requests_per_minute: int = 30
 
     @property
-    def api_key(self) -> str:
-        key = os.getenv(self.api_key_env, "")
+    def abstract_api_key(self) -> str:
+        key = os.getenv(self.abstract_api_key_env, "")
         if not key:
-            log.warning("API key env var %s is not set", self.api_key_env)
+            log.warning("API key env var %s is not set", self.abstract_api_key_env)
+        return key
+
+    @property
+    def validate_api_key(self) -> str:
+        key = os.getenv(self.validate_api_key_env, "")
+        if not key:
+            log.warning("API key env var %s is not set", self.validate_api_key_env)
         return key
 
 
 @dataclass
 class AppConfig:
-    active_provider: str = "cerebras"
-    fallback_provider: str = "groq"
-    auto_fallback_on_error: bool = True
     refresh_interval_minutes: int = 30
     max_abstract_sentences: int = 5
     stories_per_page: int = 20
     sources: list[Source] = field(default_factory=list)
-    llm_providers: dict[str, LLMProviderConfig] = field(default_factory=dict)
+    cerebras: CerebrasConfig | None = None
 
 
-def _load_llm_providers() -> dict[str, LLMProviderConfig]:
-    providers = {}
-    if not LLM_DIR.exists():
-        log.warning("LLM providers directory not found: %s", LLM_DIR)
-        return providers
-    for f in LLM_DIR.glob("*.json"):
-        try:
-            data = json.loads(f.read_text())
-            providers[data["provider"]] = LLMProviderConfig(**data)
-            log.info("Loaded LLM provider: %s (%s)", data["provider"], data["model"])
-        except Exception as e:
-            log.error("Failed to load LLM provider config %s: %s", f.name, e)
-    return providers
+def _load_cerebras_config() -> CerebrasConfig | None:
+    cfg_file = LLM_DIR / "cerebras.json"
+    if not cfg_file.exists():
+        log.warning("Cerebras config not found: %s", cfg_file)
+        return None
+    try:
+        data = json.loads(cfg_file.read_text())
+        data.pop("provider", None)
+        return CerebrasConfig(**data)
+    except Exception as e:
+        log.error("Failed to load Cerebras config: %s", e)
+        return None
 
 
 def load_config() -> AppConfig:
-    """Load main config + LLM provider configs. Call again to reload."""
+    """Load main config + Cerebras provider config."""
     try:
         data = json.loads(CONFIG_FILE.read_text())
     except Exception as e:
@@ -77,15 +79,15 @@ def load_config() -> AppConfig:
         data = {}
 
     sources = [Source(**s) for s in data.pop("sources", [])]
-    providers = _load_llm_providers()
+    cerebras = _load_cerebras_config()
 
     cfg = AppConfig(
         sources=sources,
-        llm_providers=providers,
+        cerebras=cerebras,
         **{k: v for k, v in data.items() if k in AppConfig.__dataclass_fields__},
     )
     log.info(
-        "Config loaded: %d sources, %d providers, active=%s",
-        len(cfg.sources), len(cfg.llm_providers), cfg.active_provider,
+        "Config loaded: %d sources, cerebras=%s",
+        len(cfg.sources), "yes" if cerebras else "no",
     )
     return cfg

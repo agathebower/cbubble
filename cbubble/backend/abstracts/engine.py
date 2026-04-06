@@ -2,6 +2,7 @@
 
 import logging
 from ..llm.manager import LLMManager
+from ..llm.base import LLMResponse
 
 log = logging.getLogger("cbubble.abstracts")
 
@@ -50,9 +51,23 @@ class AbstractEngine:
         self.llm = llm
         self.max_sentences = max_sentences
 
+    async def _call_abstract(self, system_prompt, user_prompt) -> LLMResponse:
+        provider = self.llm.abstract_provider
+        if not provider:
+            return LLMResponse(text="", provider="none", model="none",
+                               success=False, error="No abstract provider configured")
+        return await provider.complete(system_prompt, user_prompt)
+
+    async def _call_validate(self, system_prompt, user_prompt) -> LLMResponse:
+        provider = self.llm.validate_provider
+        if not provider:
+            return LLMResponse(text="", provider="none", model="none",
+                               success=False, error="No validate provider configured")
+        return await provider.complete(system_prompt, user_prompt)
+
     async def generate(self, title, content) -> dict:
-        # Step 1: Summarize
-        sum_result = await self.llm.complete(
+        # Step 1: Summarize (using abstract key)
+        sum_result = await self._call_abstract(
             system_prompt=SUMMARIZE_SYSTEM.format(max_sentences=self.max_sentences),
             user_prompt=SUMMARIZE_USER.format(title=title, content=content),
         )
@@ -67,8 +82,8 @@ class AbstractEngine:
                     "note": "Content too short or unclear",
                     "provider": sum_result.provider}
 
-        # Step 2: Verify
-        ver_result = await self.llm.complete(
+        # Step 2: Verify (using validate key)
+        ver_result = await self._call_validate(
             system_prompt=VERIFY_SYSTEM,
             user_prompt=VERIFY_USER.format(title=title, content=content, abstract=abstract_text),
         )
