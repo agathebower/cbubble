@@ -106,6 +106,21 @@ async def update_abstract(story_id, abstract, status, verification_note=None,
         await db.commit()
 
 
+async def reset_errored_abstracts() -> int:
+    """Reset 'error' stories back to 'pending' so they get retried."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "UPDATE stories SET abstract_status = 'pending', abstract = '', "
+            "verification_note = NULL, provider_used = NULL "
+            "WHERE abstract_status = 'error'"
+        )
+        await db.commit()
+        count = cursor.rowcount
+        if count:
+            log.info("Reset %d errored stories back to pending", count)
+        return count
+
+
 async def get_story_detail(story_id) -> dict | None:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row

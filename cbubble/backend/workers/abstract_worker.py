@@ -2,13 +2,14 @@
 
 import asyncio
 import logging
-from ..database import get_pending_stories, update_abstract
+from ..database import get_pending_stories, update_abstract, reset_errored_abstracts
 from ..abstracts.engine import AbstractEngine
 
 log = logging.getLogger("cbubble.worker.abstract")
 
 
 async def process_pending(engine: AbstractEngine, batch_size=5):
+    await reset_errored_abstracts()
     stories = await get_pending_stories(limit=batch_size)
     if not stories:
         return 0
