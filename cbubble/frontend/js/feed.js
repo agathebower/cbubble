@@ -1,5 +1,5 @@
 const CATEGORY_ICONS = { cyber: "🔐", ai: "🤖", dev: "🛠️", offensive: "🕵️", threat_intel: "📡" };
-const VALID_ABSTRACT_STATUSES = new Set(["pending", "verified", "unverified", "flagged", "skipped", "error"]);
+// VALID_ABSTRACT_STATUSES and safeStatus() are defined in popup.js (loaded after this file)
 
 const Feed = {
     observer: null,
@@ -32,9 +32,8 @@ const Feed = {
         const icon = CATEGORY_ICONS[story.category] || "📰";
         const timeAgo = this.timeAgo(story.published_at || story.fetched_at);
 
-        // Safe status class: only allow known values
-        const safeStatus = VALID_ABSTRACT_STATUSES.has(story.abstract_status)
-            ? story.abstract_status : "pending";
+        // Safe status class: safeStatus() is defined in popup.js
+        const status = safeStatus(story.abstract_status);
 
         // Build structure with DOM methods — no innerHTML with untrusted data
         let imageEl;
@@ -84,11 +83,11 @@ const Feed = {
         statusDiv.className = "tile-status";
 
         const dot = document.createElement("span");
-        dot.className = `status-dot ${safeStatus}`;
+        dot.className = `status-dot ${status}`;
 
         const label = document.createElement("span");
         label.className = "status-label";
-        label.textContent = safeStatus;
+        label.textContent = status;
 
         statusDiv.append(dot, label);
         body.append(meta, titleEl, statusDiv);
