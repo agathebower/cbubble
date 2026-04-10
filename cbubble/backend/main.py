@@ -5,11 +5,13 @@ import logging
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pathlib import Path
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from .config import load_config
 from .database import init_db
@@ -18,7 +20,7 @@ from .llm.model_discovery import discover_model
 from .abstracts.engine import AbstractEngine
 from .workers.feed_worker import collect_all
 from .workers.abstract_worker import process_pending
-from .api.routes import router as api_router
+from .api.routes import router as api_router, limiter
 
 load_dotenv()
 
@@ -59,7 +61,7 @@ async def lifespan(app: FastAPI):
     if config.cerebras:
         model = await discover_model(config.cerebras.abstract_api_key)
     if not model:
-        model = "qwen-3-235b-a22b-instruct-2507"  # safe fallback
+        model = "llama3.1-70b"  # safe fallback
         log.warning("Model discovery failed, using fallback: %s", model)
 
     llm_manager = LLMManager(config, model=model)
@@ -82,7 +84,29 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="cBubble", version="0.1.0", lifespan=lifespan)
+
+# Rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.include_router(api_router)
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next) -> Response:
+    """Inject security headers on every response."""
+    response = await call_next(request)
+    # Prevent browsers from exposing opener references across origins
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    # Restrict browser feature access
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=()"
+    )
+    # Prevent caching of API responses
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")

@@ -33,6 +33,8 @@ CREATE INDEX IF NOT EXISTS idx_stories_url ON stories(url);
 
 
 async def init_db():
+    # Ensure the DB file is created with restrictive permissions (owner read/write only)
+    DB_PATH.touch(mode=0o600, exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(SCHEMA)
         await db.commit()

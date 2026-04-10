@@ -1,5 +1,6 @@
 """Abstract generation and verification engine."""
 
+import re
 import logging
 from ..llm.manager import LLMManager
 from ..llm.base import LLMResponse
@@ -65,11 +66,20 @@ class AbstractEngine:
                                success=False, error="No validate provider configured")
         return await provider.complete(system_prompt, user_prompt)
 
+    @staticmethod
+    def _sanitize_input(text: str, max_len: int) -> str:
+        """Remove control characters and limit length to prevent prompt injection."""
+        sanitized = re.sub(r"[\r\n\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", " ", text)
+        return sanitized[:max_len]
+
     async def generate(self, title, content) -> dict:
+        safe_title = self._sanitize_input(title, 300)
+        safe_content = self._sanitize_input(content, 8000)
+
         # Step 1: Summarize (using abstract key)
         sum_result = await self._call_abstract(
             system_prompt=SUMMARIZE_SYSTEM.format(max_sentences=self.max_sentences),
-            user_prompt=SUMMARIZE_USER.format(title=title, content=content),
+            user_prompt=SUMMARIZE_USER.format(title=safe_title, content=safe_content),
         )
         if not sum_result.success:
             return {"abstract": None, "status": "error",
@@ -85,7 +95,9 @@ class AbstractEngine:
         # Step 2: Verify (using validate key)
         ver_result = await self._call_validate(
             system_prompt=VERIFY_SYSTEM,
-            user_prompt=VERIFY_USER.format(title=title, content=content, abstract=abstract_text),
+            user_prompt=VERIFY_USER.format(
+                title=safe_title, content=safe_content, abstract=abstract_text
+            ),
         )
         if not ver_result.success:
             return {"abstract": abstract_text, "status": "unverified",

@@ -1,13 +1,57 @@
 """RSS/Atom feed fetcher with HTML fallback."""
 
+import socket
+import logging
+from ipaddress import ip_address, ip_network
+from urllib.parse import urlparse
+
 import httpx
 import feedparser
-import logging
+import bleach
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 
 log = logging.getLogger("cbubble.feeds")
 HEADERS = {"User-Agent": "cBubble/1.0 (Personal News Aggregator)"}
+
+# Private / loopback / link-local ranges that must never be fetched
+_PRIVATE_NETS = [
+    ip_network(r) for r in (
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8",
+        "169.254.0.0/16",   # link-local / AWS metadata
+        "::1/128",
+        "fc00::/7",
+    )
+]
+_ALLOWED_SCHEMES = {"http", "https"}
+
+
+def _validate_url(url: str) -> str:
+    """Validate URL scheme and resolve hostname to block SSRF.
+
+    Returns the url unchanged if safe; raises ValueError otherwise.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_SCHEMES:
+        raise ValueError(f"Disallowed URL scheme: {parsed.scheme!r}")
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("URL has no hostname")
+    try:
+        addr = ip_address(socket.gethostbyname(hostname))
+    except socket.gaierror as exc:
+        raise ValueError(f"DNS resolution failed for {hostname!r}: {exc}") from exc
+    if any(addr in net for net in _PRIVATE_NETS):
+        raise ValueError(f"Blocked: {addr} resolves to a private/reserved range")
+    return url
+
+
+def _sanitize_text(raw: str, max_len: int = 500) -> str:
+    """Strip all HTML tags and truncate."""
+    return bleach.clean(raw, tags=[], strip=True)[:max_len]
 
 
 @dataclass
@@ -24,6 +68,7 @@ class FeedItem:
 async def fetch_rss(source_name, rss_url, category) -> list[FeedItem]:
     items = []
     try:
+        _validate_url(rss_url)
         async with httpx.AsyncClient(timeout=15.0, headers=HEADERS, follow_redirects=True) as client:
             resp = await client.get(rss_url)
             resp.raise_for_status()
@@ -33,24 +78,46 @@ async def fetch_rss(source_name, rss_url, category) -> list[FeedItem]:
             link = entry.get("link", "").strip()
             if not title or not link:
                 continue
+            # Validate the article link before storing
+            try:
+                _validate_url(link)
+            except ValueError as e:
+                log.warning("Skipping feed entry with unsafe URL (%s): %s", e, link[:80])
+                continue
             image = None
             if hasattr(entry, "media_content") and entry.media_content:
-                image = entry.media_content[0].get("url")
+                raw_img = entry.media_content[0].get("url")
+                if raw_img:
+                    try:
+                        _validate_url(raw_img)
+                        image = raw_img
+                    except ValueError:
+                        pass
             elif hasattr(entry, "enclosures") and entry.enclosures:
                 enc = entry.enclosures[0]
                 if enc.get("type", "").startswith("image"):
-                    image = enc.get("href")
+                    raw_img = enc.get("href", "")
+                    if raw_img:
+                        try:
+                            _validate_url(raw_img)
+                            image = raw_img
+                        except ValueError:
+                            pass
             content = ""
             if hasattr(entry, "summary"):
-                content = BeautifulSoup(entry.summary, "html.parser").get_text()[:500]
+                content = _sanitize_text(entry.summary)
             elif hasattr(entry, "content") and entry.content:
-                content = BeautifulSoup(entry.content[0].value, "html.parser").get_text()[:500]
+                content = _sanitize_text(entry.content[0].value)
             published = entry.get("published", entry.get("updated"))
-            items.append(FeedItem(title=title, url=link, source_name=source_name,
-                                  category=category, image_url=image,
-                                  published_at=published,
-                                  content_snippet=content if content else None))
+            items.append(FeedItem(
+                title=title, url=link, source_name=source_name,
+                category=category, image_url=image,
+                published_at=published,
+                content_snippet=content if content else None,
+            ))
         log.info("Fetched %d items from %s", len(items), source_name)
+    except ValueError as e:
+        log.error("Blocked unsafe RSS source %s: %s", source_name, e)
     except Exception as e:
         log.error("Failed to fetch RSS from %s: %s", source_name, e)
     return items
@@ -62,6 +129,12 @@ async def fetch_article_content(url) -> tuple[str | None, str | None]:
     Returns (content, og_image_url).
     """
     try:
+        _validate_url(url)
+    except ValueError as e:
+        log.warning("Blocked fetch_article_content for unsafe URL: %s", e)
+        return (None, None)
+
+    try:
         async with httpx.AsyncClient(timeout=20.0, headers=HEADERS, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
@@ -72,20 +145,30 @@ async def fetch_article_content(url) -> tuple[str | None, str | None]:
         for meta in soup.find_all("meta"):
             prop = meta.get("property", "") or meta.get("name", "")
             if prop == "og:image" and meta.get("content"):
-                og_image = meta["content"].strip()
+                candidate = meta["content"].strip()
+                try:
+                    _validate_url(candidate)
+                    og_image = candidate
+                except ValueError:
+                    pass
                 break
         if not og_image:
             for meta in soup.find_all("meta"):
                 prop = meta.get("property", "") or meta.get("name", "")
                 if prop in ("twitter:image", "twitter:image:src") and meta.get("content"):
-                    og_image = meta["content"].strip()
+                    candidate = meta["content"].strip()
+                    try:
+                        _validate_url(candidate)
+                        og_image = candidate
+                    except ValueError:
+                        pass
                     break
 
         for tag in soup(["script", "style", "nav", "footer", "header", "aside", "iframe"]):
             tag.decompose()
         article = soup.find("article") or soup.find("main") or soup.find("div", class_="post-content")
         text = (article or soup).get_text(separator="\n", strip=True)
-        lines = [l.strip() for l in text.splitlines() if l.strip()]
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
         content = "\n".join(lines)[:8000]
         return (content if len(content) > 100 else None, og_image)
     except Exception as e:

@@ -5,6 +5,7 @@ import os
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 log = logging.getLogger("cbubble.config")
 
@@ -14,6 +15,20 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 LLM_DIR = CONFIG_DIR / "llm_providers"
 
 
+_ALLOWED_SOURCE_SCHEMES = {"http", "https"}
+
+
+def _validate_source_url(url: str, field_name: str) -> str:
+    """Reject non-http(s) schemes in config URLs (prevents file://, gopher://, etc.)."""
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_SOURCE_SCHEMES:
+        raise ValueError(
+            f"Source {field_name!r} has disallowed scheme {parsed.scheme!r}. "
+            "Only http/https are permitted."
+        )
+    return url
+
+
 @dataclass
 class Source:
     name: str
@@ -21,6 +36,11 @@ class Source:
     category: str
     rss: str | None = None
     enabled: bool = True
+
+    def __post_init__(self):
+        _validate_source_url(self.url, "url")
+        if self.rss:
+            _validate_source_url(self.rss, "rss")
 
 
 @dataclass

@@ -1,3 +1,16 @@
+const VALID_ABSTRACT_STATUSES = new Set(["pending", "verified", "unverified", "flagged", "skipped", "error"]);
+
+function safeUrl(url) {
+    try {
+        const u = new URL(url);
+        return (u.protocol === "https:" || u.protocol === "http:") ? url : "#";
+    } catch { return "#"; }
+}
+
+function safeStatus(status) {
+    return VALID_ABSTRACT_STATUSES.has(status) ? status : "pending";
+}
+
 const Popup = {
     overlay: null, currentStory: null,
     init() {
@@ -11,10 +24,11 @@ const Popup = {
         const o = this.overlay;
         o.querySelector(".popup-source").textContent = story.source_name;
         o.querySelector(".popup-title").textContent = story.title;
-        o.querySelector(".popup-link").href = story.url;
+        o.querySelector(".popup-link").href = safeUrl(story.url);
         const badge = o.querySelector(".popup-badge");
-        badge.textContent = story.abstract_status;
-        badge.className = `popup-badge ${story.abstract_status}`;
+        const status = safeStatus(story.abstract_status);
+        badge.textContent = status;
+        badge.className = `popup-badge ${status}`;
         const textEl = o.querySelector(".popup-text");
         const loadingEl = o.querySelector(".popup-loading");
         const noteEl = o.querySelector(".popup-verification-note");
@@ -39,7 +53,9 @@ const Popup = {
             if (d.abstract) {
                 textEl.textContent = d.abstract; textEl.classList.remove("hidden");
                 loadingEl.classList.add("hidden");
-                badge.textContent = d.abstract_status; badge.className = `popup-badge ${d.abstract_status}`;
+                const status = safeStatus(d.abstract_status);
+                badge.textContent = status;
+                badge.className = `popup-badge ${status}`;
                 if (d.verification_note && d.abstract_status === "flagged") {
                     noteEl.querySelector("small").textContent = `⚠️ ${d.verification_note}`;
                     noteEl.classList.remove("hidden");

@@ -1,8 +1,16 @@
 """Cerebras LLM provider (OpenAI-compatible API)."""
 
+import re
 import httpx
 import logging
 from .base import BaseLLMProvider, LLMResponse
+
+_KEY_PATTERN = re.compile(r"(sk|csk)-[A-Za-z0-9\-]{10,}")
+
+
+def _redact(text: str) -> str:
+    """Replace any API key patterns in text with [REDACTED]."""
+    return _KEY_PATTERN.sub("[REDACTED]", text)
 
 log = logging.getLogger("cbubble.llm.cerebras")
 
@@ -32,10 +40,11 @@ class CerebrasProvider(BaseLLMProvider):
                 return LLMResponse(text=text, provider=self.name, model=self.model,
                                    success=True, usage=data.get("usage"))
         except httpx.HTTPStatusError as e:
-            log.error("Cerebras HTTP error %s: %s", e.response.status_code, e.response.text[:200])
+            safe_body = _redact(e.response.text[:200])
+            log.error("Cerebras HTTP error %s: %s", e.response.status_code, safe_body)
             return LLMResponse(text="", provider=self.name, model=self.model,
                                success=False, error=f"HTTP {e.response.status_code}")
         except Exception as e:
-            log.error("Cerebras request failed: %s", e)
+            log.error("Cerebras request failed: %s", _redact(str(e)))
             return LLMResponse(text="", provider=self.name, model=self.model,
                                success=False, error=str(e))
