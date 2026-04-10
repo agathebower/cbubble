@@ -27,10 +27,12 @@ async def process_pending(engine: AbstractEngine, batch_size=5):
                 provider_used=result["provider"],
             )
             processed += 1
+            safe_title = story["title"].replace("\n", "\\n").replace("\r", "\\r")[:50]
             log.info("Abstract for '%s': %s (provider: %s)",
-                     story["title"][:50], result["status"], result["provider"])
+                     safe_title, result["status"], result["provider"])
         except Exception as e:
-            log.error("Failed abstract for story %d: %s", story["id"], e)
+            safe_err = str(e).replace("\n", "\\n").replace("\r", "\\r")[:200]
+            log.error("Failed abstract for story %d: %s", story["id"], safe_err)
             await update_abstract(story["id"], "", "error", str(e))
         await asyncio.sleep(2)
     return processed
