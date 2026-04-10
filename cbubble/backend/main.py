@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
     if config.cerebras:
         model = await discover_model(config.cerebras.abstract_api_key)
     if not model:
-        model = "qwen-3-235b-a22b-instruct-2507"  # safe fallback
+        model = "llama3.1-70b"  # safe fallback
         log.warning("Model discovery failed, using fallback: %s", model)
 
     llm_manager = LLMManager(config, model=model)

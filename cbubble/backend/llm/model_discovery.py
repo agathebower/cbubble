@@ -9,7 +9,7 @@ log = logging.getLogger("cbubble.llm.discovery")
 CEREBRAS_MODELS_URL = "https://api.cerebras.ai/v1/models"
 
 # Preference order: first match wins. Each entry is a substring to match in model ID.
-MODEL_PREFERENCES = ["qwen", "llama", "glm", "gpt"]
+MODEL_PREFERENCES = ["llama", "qwen", "glm", "gpt"]
 
 _cache: dict = {"model": None, "models": [], "updated_at": 0.0}
 
