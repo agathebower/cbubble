@@ -9,5 +9,12 @@ if [ -f .env ]; then
 fi
 HOST="${CBUBBLE_HOST:-0.0.0.0}"
 PORT="${CBUBBLE_PORT:-8800}"
-echo "=== cBubble starting on http://${HOST}:${PORT} ==="
-exec uvicorn backend.main:app --host "$HOST" --port "$PORT" --reload
+ENVIRONMENT="${ENVIRONMENT:-production}"
+
+echo "=== cBubble starting on http://${HOST}:${PORT} (env: ${ENVIRONMENT}) ==="
+
+if [ "$ENVIRONMENT" = "development" ]; then
+    exec uvicorn backend.main:app --host "$HOST" --port "$PORT" --reload
+else
+    exec uvicorn backend.main:app --host "$HOST" --port "$PORT"
+fi

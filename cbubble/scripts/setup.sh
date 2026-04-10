@@ -15,6 +15,7 @@ pip install -r requirements.txt -q
 if [ ! -f ".env" ]; then
     echo "[+] Creating .env from .env.example..."
     cp .env.example .env
+    chmod 600 .env
     echo "    ⚠️  Please edit .env and add your API keys!"
 fi
 for dir in backend backend/llm backend/feeds backend/abstracts backend/workers backend/api; do
