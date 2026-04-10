@@ -1,4 +1,6 @@
 const CATEGORY_ICONS = { cyber: "🔐", ai: "🤖", dev: "🛠️", offensive: "🕵️", threat_intel: "📡" };
+const VALID_ABSTRACT_STATUSES = new Set(["pending", "verified", "unverified", "flagged", "skipped", "error"]);
+
 const Feed = {
     observer: null,
     async loadPage() {
@@ -10,7 +12,7 @@ const Feed = {
         loader.classList.remove("hidden"); empty.classList.add("hidden");
         try {
             let url = `/api/stories?page=${s.page}&limit=20`;
-            if (s.category) url += `&category=${s.category}`;
+            if (s.category) url += `&category=${encodeURIComponent(s.category)}`;
             const resp = await fetch(url);
             const data = await resp.json();
             const stories = data.stories || [];
@@ -24,27 +26,82 @@ const Feed = {
     renderTile(story) {
         const feed = document.getElementById("feed");
         const tile = document.createElement("article");
-        tile.className = "tile"; tile.dataset.id = story.id; tile.dataset.url = story.url;
+        tile.className = "tile";
+        tile.dataset.id = story.id;
+
         const icon = CATEGORY_ICONS[story.category] || "📰";
         const timeAgo = this.timeAgo(story.published_at || story.fetched_at);
-        let imageHTML = story.image_url
-            ? `<img class="tile-image" src="${this.esc(story.image_url)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'tile-image-placeholder\\'>${icon}</div>'">`
-            : `<div class="tile-image-placeholder">${icon}</div>`;
-        tile.innerHTML = `${imageHTML}
-            <div class="tile-body">
-                <div class="tile-meta">
-                    <span class="tile-source">${this.esc(story.source_name)}</span>
-                    <span class="tile-time">${timeAgo}</span>
-                    <span class="tile-category">${story.category.replace("_", " ")}</span>
-                </div>
-                <h3 class="tile-title">${this.esc(story.title)}</h3>
-                <div class="tile-status">
-                    <span class="status-dot ${story.abstract_status}"></span>
-                    <span class="status-label">${story.abstract_status}</span>
-                </div>
-            </div>`;
+
+        // Safe status class: only allow known values
+        const safeStatus = VALID_ABSTRACT_STATUSES.has(story.abstract_status)
+            ? story.abstract_status : "pending";
+
+        // Build structure with DOM methods — no innerHTML with untrusted data
+        let imageEl;
+        if (story.image_url && this.isSafeUrl(story.image_url)) {
+            imageEl = document.createElement("img");
+            imageEl.className = "tile-image";
+            imageEl.src = story.image_url;
+            imageEl.alt = "";
+            imageEl.loading = "lazy";
+            imageEl.onerror = function () {
+                const placeholder = document.createElement("div");
+                placeholder.className = "tile-image-placeholder";
+                placeholder.textContent = icon;
+                this.replaceWith(placeholder);
+            };
+        } else {
+            imageEl = document.createElement("div");
+            imageEl.className = "tile-image-placeholder";
+            imageEl.textContent = icon;
+        }
+
+        const body = document.createElement("div");
+        body.className = "tile-body";
+
+        const meta = document.createElement("div");
+        meta.className = "tile-meta";
+
+        const sourceSpan = document.createElement("span");
+        sourceSpan.className = "tile-source";
+        sourceSpan.textContent = story.source_name;
+
+        const timeSpan = document.createElement("span");
+        timeSpan.className = "tile-time";
+        timeSpan.textContent = timeAgo;
+
+        const catSpan = document.createElement("span");
+        catSpan.className = "tile-category";
+        catSpan.textContent = story.category.replace("_", " ");
+
+        meta.append(sourceSpan, timeSpan, catSpan);
+
+        const titleEl = document.createElement("h3");
+        titleEl.className = "tile-title";
+        titleEl.textContent = story.title;
+
+        const statusDiv = document.createElement("div");
+        statusDiv.className = "tile-status";
+
+        const dot = document.createElement("span");
+        dot.className = `status-dot ${safeStatus}`;
+
+        const label = document.createElement("span");
+        label.className = "status-label";
+        label.textContent = safeStatus;
+
+        statusDiv.append(dot, label);
+        body.append(meta, titleEl, statusDiv);
+        tile.append(imageEl, body);
+
         tile.addEventListener("click", (e) => { e.preventDefault(); Popup.open(story); });
         feed.appendChild(tile);
+    },
+    isSafeUrl(url) {
+        try {
+            const u = new URL(url);
+            return u.protocol === "https:" || u.protocol === "http:";
+        } catch { return false; }
     },
     observeScroll() {
         if (this.observer) this.observer.disconnect();
@@ -66,5 +123,4 @@ const Feed = {
             return new Date(dateStr).toLocaleDateString();
         } catch { return ""; }
     },
-    esc(s) { if (!s) return ""; const d = document.createElement("div"); d.textContent = s; return d.innerHTML; },
 };
