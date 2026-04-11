@@ -33,6 +33,8 @@ const Popup = {
         const loadingEl = o.querySelector(".popup-loading");
         const noteEl = o.querySelector(".popup-verification-note");
         noteEl.classList.add("hidden");
+        // Show overlay immediately — don't wait for async fetch
+        o.classList.remove("hidden"); document.body.style.overflow = "hidden";
         if (story.abstract && story.abstract_status !== "pending") {
             loadingEl.classList.add("hidden");
             textEl.textContent = story.abstract; textEl.classList.remove("hidden");
@@ -44,7 +46,6 @@ const Popup = {
             noteEl.querySelector("small").textContent = `⚠️ ${story.verification_note}`;
             noteEl.classList.remove("hidden");
         }
-        o.classList.remove("hidden"); document.body.style.overflow = "hidden";
     },
     async fetchDetail(storyId, textEl, loadingEl, badge, noteEl) {
         try {

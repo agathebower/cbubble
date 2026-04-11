@@ -1,4 +1,4 @@
-const CACHE_NAME = "cbubble-v2";
+const CACHE_NAME = "cbubble-v3";
 const STATIC_ASSETS = ["/", "/static/css/style.css", "/static/js/app.js", "/static/js/feed.js", "/static/js/popup.js"];
 self.addEventListener("install", (e) => {
     e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(STATIC_ASSETS)));
