@@ -28,6 +28,8 @@ const Feed = {
         const tile = document.createElement("article");
         tile.className = "tile";
         tile.dataset.id = story.id;
+        tile.setAttribute("role", "button");
+        tile.setAttribute("tabindex", "0");
 
         const icon = CATEGORY_ICONS[story.category] || "📰";
         const timeAgo = this.timeAgo(story.published_at || story.fetched_at);
@@ -94,6 +96,11 @@ const Feed = {
         tile.append(imageEl, body);
 
         tile.addEventListener("click", (e) => { e.preventDefault(); Popup.open(story); });
+        // iOS Safari fallback: touchend fires more reliably than click on non-interactive elements
+        let touchMoved = false;
+        tile.addEventListener("touchstart", () => { touchMoved = false; }, { passive: true });
+        tile.addEventListener("touchmove", () => { touchMoved = true; }, { passive: true });
+        tile.addEventListener("touchend", (e) => { if (!touchMoved) { e.preventDefault(); Popup.open(story); } });
         feed.appendChild(tile);
     },
     isSafeUrl(url) {
