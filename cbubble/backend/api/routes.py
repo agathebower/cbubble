@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from ..database import get_stories, get_story_detail
+from ..database import get_stories, get_story_detail, get_stats
 from ..config import load_config
 from .auth import require_api_key
 
@@ -64,6 +64,12 @@ async def list_sources(request: Request):
             for s in config.sources
         ]
     }
+
+
+@router.get("/stats")
+@limiter.limit("30/minute")
+async def stats_endpoint(request: Request):
+    return await get_stats()
 
 
 @router.post("/reload", dependencies=[Depends(require_api_key)])

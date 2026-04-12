@@ -123,6 +123,25 @@ async def reset_errored_abstracts() -> int:
         return count
 
 
+async def get_stats() -> dict:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        total = (await db.execute_fetchall("SELECT COUNT(*) as c FROM stories"))[0]["c"]
+        by_status = await db.execute_fetchall(
+            "SELECT abstract_status, COUNT(*) as c FROM stories GROUP BY abstract_status"
+        )
+        by_category = await db.execute_fetchall(
+            "SELECT category, COUNT(*) as c FROM stories GROUP BY category ORDER BY c DESC"
+        )
+        latest = (await db.execute_fetchall("SELECT MAX(fetched_at) as t FROM stories"))[0]["t"]
+    return {
+        "total": total,
+        "by_status": {r["abstract_status"]: r["c"] for r in by_status},
+        "by_category": {r["category"]: r["c"] for r in by_category},
+        "latest_fetch": latest,
+    }
+
+
 async def get_story_detail(story_id) -> dict | None:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
