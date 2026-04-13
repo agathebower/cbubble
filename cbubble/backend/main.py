@@ -79,7 +79,7 @@ async def lifespan(app: FastAPI):
     log.info("Running initial feed collection...")
     await collect_all(config)
     await process_pending(abstract_engine, batch_size=10)
-    await backfill_images(batch_size=500)  # catch-up run on startup
+    await backfill_images(batch_size=100)  # catch-up run on startup
     yield
     scheduler.shutdown(wait=False)
     log.info("cBubble shut down.")

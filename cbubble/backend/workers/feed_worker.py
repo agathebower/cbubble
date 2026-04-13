@@ -54,7 +54,7 @@ async def backfill_images(batch_size: int = 25) -> int:
                 filled += 1
         except Exception as e:
             log.debug("Image backfill failed for story %d: %s", story["id"], e)
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(1.5)
     if filled:
         log.info("Image backfill: %d/%d stories updated", filled, len(stories))
     return filled
