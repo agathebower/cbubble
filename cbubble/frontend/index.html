@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -15,6 +15,19 @@
         <div class="header-inner">
             <h1 class="logo">c<span>Bubble</span></h1>
             <div class="header-actions">
+                <button id="btn-stats" class="icon-btn" title="Stats">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/>
+                    </svg>
+                </button>
+                <button id="btn-theme" class="icon-btn" title="Toggle theme">
+                    <svg id="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                    <svg id="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden">
+                        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                </button>
                 <button id="btn-refresh" class="icon-btn" title="Refresh">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M23 4v6h-6M1 20v-6h6"/>
@@ -25,7 +38,11 @@
         </div>
         <nav id="category-tabs" class="category-tabs">
             <button class="cat-tab active" data-category="all">All</button>
+            <button class="cat-tab" data-category="bookmarks" id="tab-bookmarks">🔖 Saved</button>
         </nav>
+        <div class="search-bar">
+            <input id="search-input" type="search" placeholder="Search stories…" autocomplete="off" spellcheck="false">
+        </div>
     </header>
     <main id="feed" class="feed-grid"></main>
     <div id="loader" class="loader"><div class="spinner"></div><span>Loading stories…</span></div>
@@ -48,7 +65,20 @@
             <div class="popup-verification-note hidden"><small></small></div>
             <div class="popup-footer">
                 <a class="popup-link" href="#" target="_blank" rel="noopener">Read full article →</a>
+                <div class="popup-actions">
+                    <button class="popup-action-btn" id="btn-popup-bookmark">🔖 Save</button>
+                    <button class="popup-action-btn" id="btn-popup-share">↗ Share</button>
+                </div>
             </div>
+        </div>
+    </div>
+    <div id="stats-overlay" class="stats-overlay hidden">
+        <div class="stats-card">
+            <div class="stats-header">
+                <h3>cBubble Stats</h3>
+                <button class="stats-close">&times;</button>
+            </div>
+            <div id="stats-content" class="stats-content">Loading…</div>
         </div>
     </div>
     <script src="/static/js/app.js"></script>

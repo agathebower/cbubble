@@ -18,6 +18,37 @@ const Popup = {
         this.overlay.querySelector(".popup-close").addEventListener("click", () => this.close());
         this.overlay.addEventListener("click", (e) => { if (e.target === this.overlay) this.close(); });
         document.addEventListener("keydown", (e) => { if (e.key === "Escape") this.close(); });
+
+        document.getElementById("btn-popup-bookmark").addEventListener("click", () => {
+            if (!this.currentStory) return;
+            const saved = Bookmarks.toggle(this.currentStory);
+            const btn = document.getElementById("btn-popup-bookmark");
+            btn.textContent = saved ? "★ Saved" : "🔖 Save";
+            btn.classList.toggle("saved", saved);
+            // sync tile bookmark button
+            const tile = document.querySelector(`.tile[data-id="${this.currentStory.id}"]`);
+            const tileBtn = tile?.querySelector(".tile-bookmark");
+            if (tileBtn) {
+                tileBtn.textContent = saved ? "★" : "☆";
+                tileBtn.classList.toggle("saved", saved);
+            }
+        });
+
+        document.getElementById("btn-popup-share").addEventListener("click", () => {
+            if (!this.currentStory) return;
+            const url = safeUrl(this.currentStory.url);
+            const title = this.currentStory.title;
+            if (navigator.share) {
+                navigator.share({ title, url }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    const btn = document.getElementById("btn-popup-share");
+                    const orig = btn.textContent;
+                    btn.textContent = "✓ Copied!";
+                    setTimeout(() => { btn.textContent = orig; }, 2000);
+                }).catch(() => {});
+            }
+        });
     },
     async open(story) {
         this.currentStory = story;
@@ -33,8 +64,16 @@ const Popup = {
         const loadingEl = o.querySelector(".popup-loading");
         const noteEl = o.querySelector(".popup-verification-note");
         noteEl.classList.add("hidden");
+
+        // Bookmark button state
+        const bookmarkBtn = document.getElementById("btn-popup-bookmark");
+        const isSaved = Bookmarks.has(story.id);
+        bookmarkBtn.textContent = isSaved ? "★ Saved" : "🔖 Save";
+        bookmarkBtn.classList.toggle("saved", isSaved);
+
         // Show overlay immediately — don't wait for async fetch
         o.classList.remove("hidden"); document.body.style.overflow = "hidden";
+
         if (story.abstract && story.abstract_status !== "pending") {
             loadingEl.classList.add("hidden");
             textEl.textContent = story.abstract; textEl.classList.remove("hidden");
@@ -57,6 +96,10 @@ const Popup = {
                 const status = safeStatus(d.abstract_status);
                 badge.textContent = status;
                 badge.className = `popup-badge ${status}`;
+                if (this.currentStory) {
+                    this.currentStory.abstract = d.abstract;
+                    this.currentStory.abstract_status = d.abstract_status;
+                }
                 if (d.verification_note && d.abstract_status === "flagged") {
                     noteEl.querySelector("small").textContent = `⚠️ ${d.verification_note}`;
                     noteEl.classList.remove("hidden");

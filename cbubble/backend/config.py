@@ -74,6 +74,7 @@ class AppConfig:
     stories_per_page: int = 20
     sources: list[Source] = field(default_factory=list)
     cerebras: CerebrasConfig | None = None
+    notify_keywords: list[str] = field(default_factory=list)
 
 
 def _load_cerebras_config() -> CerebrasConfig | None:
