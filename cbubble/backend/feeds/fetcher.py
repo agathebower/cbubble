@@ -57,9 +57,12 @@ def _sanitize_text(raw: str, max_len: int = 500) -> str:
 def _safe_img(url: str | None) -> str | None:
     if not url:
         return None
+    url = url.strip()
+    if url.startswith("//"):
+        url = "https:" + url
     try:
-        _validate_url(url.strip())
-        return url.strip()
+        _validate_url(url)
+        return url
     except ValueError:
         return None
 
