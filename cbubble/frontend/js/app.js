@@ -46,7 +46,6 @@ const App = {
     async refresh() {
         this.state.page = 1; this.state.hasMore = true; this.state.stories = [];
         document.getElementById("feed").innerHTML = "";
-        try { await fetch("/api/reload", { method: "POST" }); } catch (_) {}
         await Feed.loadPage();
     },
     registerSW() {
