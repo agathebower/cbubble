@@ -123,6 +123,22 @@ async def reset_errored_abstracts() -> int:
         return count
 
 
+async def get_stories_without_images(limit: int = 20) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall(
+            "SELECT id, url FROM stories WHERE image_url IS NULL ORDER BY fetched_at DESC LIMIT ?",
+            (limit,),
+        )
+        return [dict(r) for r in rows]
+
+
+async def update_story_image(story_id: int, image_url: str) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE stories SET image_url = ? WHERE id = ?", (image_url, story_id))
+        await db.commit()
+
+
 async def get_stats() -> dict:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row

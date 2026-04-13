@@ -4,7 +4,7 @@ import asyncio
 import logging
 from ..config import AppConfig, Source
 from ..feeds.fetcher import fetch_rss, fetch_article_content
-from ..database import insert_story, get_db
+from ..database import insert_story, get_db, get_stories_without_images, update_story_image
 
 log = logging.getLogger("cbubble.worker.feed")
 
@@ -38,6 +38,26 @@ async def collect_source(source: Source):
     if new_count:
         log.info("Source %s: %d new stories", source.name, new_count)
     return new_count
+
+
+async def backfill_images(batch_size: int = 25) -> int:
+    """Fetch og:image for existing stories that have no image_url."""
+    stories = await get_stories_without_images(limit=batch_size)
+    if not stories:
+        return 0
+    filled = 0
+    for story in stories:
+        try:
+            _, og_image = await fetch_article_content(story["url"])
+            if og_image:
+                await update_story_image(story["id"], og_image)
+                filled += 1
+        except Exception as e:
+            log.debug("Image backfill failed for story %d: %s", story["id"], e)
+        await asyncio.sleep(0.3)
+    if filled:
+        log.info("Image backfill: %d/%d stories updated", filled, len(stories))
+    return filled
 
 
 async def collect_all(config: AppConfig):

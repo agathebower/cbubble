@@ -54,6 +54,50 @@ def _sanitize_text(raw: str, max_len: int = 500) -> str:
     return bleach.clean(raw, tags=[], strip=True)[:max_len]
 
 
+def _safe_img(url: str | None) -> str | None:
+    if not url:
+        return None
+    try:
+        _validate_url(url.strip())
+        return url.strip()
+    except ValueError:
+        return None
+
+
+def _extract_rss_image(entry) -> str | None:
+    """Try every common RSS image location in priority order."""
+    # 1. media:content
+    if hasattr(entry, "media_content") and entry.media_content:
+        img = _safe_img(entry.media_content[0].get("url"))
+        if img:
+            return img
+    # 2. media:thumbnail
+    if hasattr(entry, "media_thumbnail") and entry.media_thumbnail:
+        img = _safe_img(entry.media_thumbnail[0].get("url"))
+        if img:
+            return img
+    # 3. enclosure (podcast-style)
+    if hasattr(entry, "enclosures") and entry.enclosures:
+        enc = entry.enclosures[0]
+        if enc.get("type", "").startswith("image"):
+            img = _safe_img(enc.get("href"))
+            if img:
+                return img
+    # 4. first <img> in summary/content HTML
+    for field in ("summary", "content"):
+        html = getattr(entry, field, None)
+        if isinstance(html, list):
+            html = html[0].value if html else None
+        if html:
+            soup = BeautifulSoup(html, "html.parser")
+            tag = soup.find("img")
+            if tag:
+                img = _safe_img(tag.get("src"))
+                if img:
+                    return img
+    return None
+
+
 @dataclass
 class FeedItem:
     title: str
@@ -84,25 +128,7 @@ async def fetch_rss(source_name, rss_url, category) -> list[FeedItem]:
             except ValueError as e:
                 log.warning("Skipping feed entry with unsafe URL (%s): %s", e, link[:80])
                 continue
-            image = None
-            if hasattr(entry, "media_content") and entry.media_content:
-                raw_img = entry.media_content[0].get("url")
-                if raw_img:
-                    try:
-                        _validate_url(raw_img)
-                        image = raw_img
-                    except ValueError:
-                        pass
-            elif hasattr(entry, "enclosures") and entry.enclosures:
-                enc = entry.enclosures[0]
-                if enc.get("type", "").startswith("image"):
-                    raw_img = enc.get("href", "")
-                    if raw_img:
-                        try:
-                            _validate_url(raw_img)
-                            image = raw_img
-                        except ValueError:
-                            pass
+            image = _extract_rss_image(entry)
             content = ""
             if hasattr(entry, "summary"):
                 content = _sanitize_text(entry.summary)

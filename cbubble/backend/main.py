@@ -18,7 +18,7 @@ from .database import init_db
 from .llm.manager import LLMManager
 from .llm.model_discovery import discover_model
 from .abstracts.engine import AbstractEngine
-from .workers.feed_worker import collect_all
+from .workers.feed_worker import collect_all, backfill_images
 from .workers.abstract_worker import process_pending
 from .api.routes import router as api_router, limiter
 
@@ -39,6 +39,7 @@ scheduler = AsyncIOScheduler()
 async def scheduled_feed_collect():
     await collect_all(config)
     await process_pending(abstract_engine, batch_size=10)
+    await backfill_images(batch_size=25)
 
 
 async def refresh_models():
@@ -78,6 +79,7 @@ async def lifespan(app: FastAPI):
     log.info("Running initial feed collection...")
     await collect_all(config)
     await process_pending(abstract_engine, batch_size=10)
+    await backfill_images(batch_size=25)
     yield
     scheduler.shutdown(wait=False)
     log.info("cBubble shut down.")
