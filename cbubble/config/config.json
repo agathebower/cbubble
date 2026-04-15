@@ -17,6 +17,7 @@
     {"name": "VulDB", "url": "https://vuldb.com", "rss": "https://vuldb.com/?rss.recent", "category": "offensive", "enabled": true},
     {"name": "Exploit Database", "url": "https://exploit-db.com", "rss": "https://www.exploit-db.com/rss.xml", "category": "offensive", "enabled": true},
     {"name": "Krebs on Security", "url": "https://krebsonsecurity.com", "rss": "https://krebsonsecurity.com/feed/", "category": "threat_intel", "enabled": true},
-    {"name": "Recorded Future Blog", "url": "https://recordedfuture.com/blog", "rss": "https://www.recordedfuture.com/feed", "category": "threat_intel", "enabled": true}
+    {"name": "Recorded Future Blog", "url": "https://recordedfuture.com/blog", "rss": "https://www.recordedfuture.com/feed", "category": "threat_intel", "enabled": true},
+    {"name": "TLDR", "url": "https://tldr.tech", "rss": "https://tldr.tech/api/rss/tech", "category": "dev", "enabled": true}
   ]
 }
