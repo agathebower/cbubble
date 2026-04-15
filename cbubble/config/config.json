@@ -2,6 +2,7 @@
   "refresh_interval_minutes": 30,
   "max_abstract_sentences": 5,
   "stories_per_page": 20,
+  "notify_keywords": ["Dumb", "critical", "zero-day", "HTB", "hackthebox", "hacktheplanet"],
   "sources": [
     {"name": "The Hacker News", "url": "https://thehackernews.com", "rss": "https://feeds.feedburner.com/TheHackersNews", "category": "cyber", "enabled": true},
     {"name": "BleepingComputer", "url": "https://bleepingcomputer.com", "rss": "https://www.bleepingcomputer.com/feed/", "category": "cyber", "enabled": true},
@@ -18,6 +19,8 @@
     {"name": "Exploit Database", "url": "https://exploit-db.com", "rss": "https://www.exploit-db.com/rss.xml", "category": "offensive", "enabled": true},
     {"name": "Krebs on Security", "url": "https://krebsonsecurity.com", "rss": "https://krebsonsecurity.com/feed/", "category": "threat_intel", "enabled": true},
     {"name": "Recorded Future Blog", "url": "https://recordedfuture.com/blog", "rss": "https://www.recordedfuture.com/feed", "category": "threat_intel", "enabled": true},
-    {"name": "TLDR", "url": "https://tldr.tech", "rss": "https://tldr.tech/api/rss/tech", "category": "dev", "enabled": true}
+    {"name": "TLDR", "url": "https://tldr.tech", "rss": "https://tldr.tech/api/rss/tech", "category": "dev", "enabled": true},
+    {"name": "TLDR AI", "url": "https://tldr.tech/ai", "rss": "https://tldr.tech/api/rss/ai", "category": "ai", "enabled": true},
+    {"name": "TLDR DevOps", "url": "https://tldr.tech/devops", "rss": "https://tldr.tech/api/rss/devops", "category": "dev", "enabled": true}
   ]
 }
