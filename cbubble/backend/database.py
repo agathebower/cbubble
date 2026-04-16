@@ -73,14 +73,14 @@ async def get_stories(page=1, limit=20, category=None) -> list[dict]:
                 """SELECT id, source_name, category, title, url, image_url,
                           published_at, fetched_at, abstract, abstract_status
                    FROM stories WHERE category = ?
-                   ORDER BY fetched_at DESC LIMIT ? OFFSET ?""",
+                   ORDER BY COALESCE(published_at, fetched_at) DESC LIMIT ? OFFSET ?""",
                 (category, limit, offset),
             )
         else:
             rows = await db.execute_fetchall(
                 """SELECT id, source_name, category, title, url, image_url,
                           published_at, fetched_at, abstract, abstract_status
-                   FROM stories ORDER BY fetched_at DESC LIMIT ? OFFSET ?""",
+                   FROM stories ORDER BY COALESCE(published_at, fetched_at) DESC LIMIT ? OFFSET ?""",
                 (limit, offset),
             )
         return [dict(r) for r in rows]

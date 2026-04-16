@@ -1,4 +1,25 @@
 const CATEGORY_ICONS = { cyber: "🔐", ai: "🤖", dev: "🛠️", offensive: "🕵️", threat_intel: "📡" };
+
+const SOURCE_FAVICONS = {
+    "The Hacker News":      "https://thehackernews.com",
+    "BleepingComputer":     "https://bleepingcomputer.com",
+    "Dark Reading":         "https://darkreading.com",
+    "SecurityWeek":         "https://securityweek.com",
+    "Cybersecurity Dive":   "https://cybersecuritydive.com",
+    "Simon Willison's Blog":"https://simonwillison.net",
+    "Hugging Face Blog":    "https://huggingface.co",
+    "LWN.net":              "https://lwn.net",
+    "Lobsters":             "https://lobste.rs",
+    "Hacker News":          "https://news.ycombinator.com",
+    "PortSwigger Research": "https://portswigger.net",
+    "VulDB":                "https://vuldb.com",
+    "Exploit Database":     "https://exploit-db.com",
+    "Krebs on Security":    "https://krebsonsecurity.com",
+    "Recorded Future Blog": "https://recordedfuture.com",
+    "TLDR":                 "https://tldr.tech",
+    "TLDR AI":              "https://tldr.tech",
+    "TLDR DevOps":          "https://tldr.tech",
+};
 // safeStatus() is defined in popup.js (loaded after this file)
 
 const LastVisit = {
@@ -66,6 +87,11 @@ const Feed = {
         const timeAgo = this.timeAgo(story.published_at || story.fetched_at);
         const status = safeStatus(story.abstract_status);
 
+        const faviconDomain = SOURCE_FAVICONS[story.source_name];
+        const faviconUrl = faviconDomain
+            ? `https://www.google.com/s2/favicons?domain=${faviconDomain}&sz=64`
+            : null;
+
         let imageEl;
         if (story.image_url && this.isSafeUrl(story.image_url)) {
             imageEl = document.createElement("img");
@@ -74,11 +100,30 @@ const Feed = {
             imageEl.alt = "";
             imageEl.loading = "lazy";
             imageEl.onerror = function () {
-                const placeholder = document.createElement("div");
-                placeholder.className = "tile-image-placeholder";
-                placeholder.textContent = icon;
-                this.replaceWith(placeholder);
+                if (faviconUrl) {
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "tile-image-placeholder";
+                    const fav = document.createElement("img");
+                    fav.src = faviconUrl;
+                    fav.className = "tile-favicon";
+                    fav.alt = "";
+                    wrapper.appendChild(fav);
+                    this.replaceWith(wrapper);
+                } else {
+                    const placeholder = document.createElement("div");
+                    placeholder.className = "tile-image-placeholder";
+                    placeholder.textContent = icon;
+                    this.replaceWith(placeholder);
+                }
             };
+        } else if (faviconUrl) {
+            imageEl = document.createElement("div");
+            imageEl.className = "tile-image-placeholder";
+            const fav = document.createElement("img");
+            fav.src = faviconUrl;
+            fav.className = "tile-favicon";
+            fav.alt = "";
+            imageEl.appendChild(fav);
         } else {
             imageEl = document.createElement("div");
             imageEl.className = "tile-image-placeholder";
