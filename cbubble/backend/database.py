@@ -165,3 +165,50 @@ async def get_story_detail(story_id) -> dict | None:
             "SELECT * FROM stories WHERE id = ?", (story_id,)
         )
         return dict(row[0]) if row else None
+
+
+async def migrate_published_at_to_iso() -> int:
+    """One-time migration: convert RFC 2822 published_at strings to ISO 8601.
+
+    Existing stories stored with raw RSS date strings (e.g. 'Sun, 26 Apr 2026 ...')
+    sort alphabetically by weekday name, not by date. This converts them all to
+    ISO 8601 so SQLite TEXT sort works correctly.
+    """
+    from email.utils import parsedate_to_datetime
+    from datetime import timezone
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall(
+            "SELECT id, published_at FROM stories "
+            "WHERE published_at IS NOT NULL AND published_at NOT LIKE '____-__-__%'"
+        )
+        count = 0
+        for row in rows:
+            try:
+                dt = parsedate_to_datetime(row["published_at"])
+                iso = dt.astimezone(timezone.utc).isoformat()
+                await db.execute(
+                    "UPDATE stories SET published_at = ? WHERE id = ?",
+                    (iso, row["id"]),
+                )
+                count += 1
+            except Exception:
+                pass
+        if count:
+            await db.commit()
+            log.info("Migrated %d stories: published_at → ISO 8601", count)
+        return count
+
+
+async def prune_old_stories(max_age_days: int = 7) -> int:
+    """Delete stories fetched more than max_age_days ago."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "DELETE FROM stories WHERE fetched_at < datetime('now', ?)",
+            (f"-{max_age_days} days",),
+        )
+        await db.commit()
+        count = cursor.rowcount
+        if count:
+            log.info("Pruned %d stories older than %d days", count, max_age_days)
+        return count

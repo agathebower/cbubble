@@ -14,7 +14,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from .config import load_config
-from .database import init_db
+from .database import init_db, prune_old_stories, migrate_published_at_to_iso
 from .llm.manager import LLMManager
 from .llm.model_discovery import discover_model
 from .abstracts.engine import AbstractEngine
@@ -40,6 +40,10 @@ async def scheduled_feed_collect():
     await collect_all(config)
     await process_pending(abstract_engine, batch_size=10)
     await backfill_images(batch_size=100)
+
+
+async def scheduled_prune():
+    await prune_old_stories(max_age_days=7)
 
 
 async def refresh_models():
@@ -73,10 +77,14 @@ async def lifespan(app: FastAPI):
                       id="feed_collect", replace_existing=True)
     scheduler.add_job(refresh_models, "interval", hours=24,
                       id="model_refresh", replace_existing=True)
+    scheduler.add_job(scheduled_prune, "interval", hours=24,
+                      id="prune_old", replace_existing=True)
     scheduler.start()
     log.info("Scheduler started: feeds every %d min, model refresh every 24h",
              config.refresh_interval_minutes)
     log.info("Running initial feed collection...")
+    await migrate_published_at_to_iso()
+    await prune_old_stories(max_age_days=7)
     await collect_all(config)
     await process_pending(abstract_engine, batch_size=10)
     await backfill_images(batch_size=100)  # catch-up run on startup

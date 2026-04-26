@@ -137,7 +137,19 @@ async def fetch_rss(source_name, rss_url, category) -> list[FeedItem]:
                 content = _sanitize_text(entry.summary)
             elif hasattr(entry, "content") and entry.content:
                 content = _sanitize_text(entry.content[0].value)
-            published = entry.get("published", entry.get("updated"))
+            # Normalize to ISO 8601 so TEXT sort in SQLite works correctly.
+            # feedparser's *_parsed is a UTC time.struct_time; raw .published is
+            # feed-format-dependent (RFC 2822 for RSS, ISO for Atom) — can't sort mixed.
+            published = None
+            parsed_time = entry.get("published_parsed") or entry.get("updated_parsed")
+            if parsed_time:
+                import calendar
+                from datetime import datetime, timezone
+                published = datetime.fromtimestamp(
+                    calendar.timegm(parsed_time), tz=timezone.utc
+                ).isoformat()
+            elif entry.get("published") or entry.get("updated"):
+                published = entry.get("published", entry.get("updated"))
             items.append(FeedItem(
                 title=title, url=link, source_name=source_name,
                 category=category, image_url=image,
