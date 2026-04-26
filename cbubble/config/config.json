@@ -15,7 +15,7 @@
     {"name": "Lobsters", "url": "https://lobste.rs", "rss": "https://lobste.rs/rss", "category": "dev", "enabled": true},
     {"name": "Hacker News", "url": "https://news.ycombinator.com", "rss": "https://hnrss.org/frontpage", "category": "dev", "enabled": true},
     {"name": "PortSwigger Research", "url": "https://portswigger.net/research", "rss": "https://portswigger.net/research/rss", "category": "offensive", "enabled": true},
-    {"name": "VulDB", "url": "https://vuldb.com", "rss": "https://vuldb.com/?rss.recent", "category": "offensive", "enabled": true},
+    {"name": "VulDB", "url": "https://vuldb.com", "rss": "https://vuldb.com/?rss.recent", "category": "offensive", "enabled": false},
     {"name": "Exploit Database", "url": "https://exploit-db.com", "rss": "https://www.exploit-db.com/rss.xml", "category": "offensive", "enabled": true},
     {"name": "Krebs on Security", "url": "https://krebsonsecurity.com", "rss": "https://krebsonsecurity.com/feed/", "category": "threat_intel", "enabled": true},
     {"name": "Recorded Future Blog", "url": "https://recordedfuture.com/blog", "rss": "https://www.recordedfuture.com/feed", "category": "threat_intel", "enabled": true},
