@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from ..database import get_pending_stories, update_abstract, reset_errored_abstracts
+from ..database import get_pending_stories, get_story_detail, update_abstract, reset_errored_abstracts
 from ..abstracts.engine import AbstractEngine
 from ..config import load_config
 from ..notify import telegram_notify
@@ -46,3 +46,26 @@ async def process_pending(engine: AbstractEngine, batch_size=5):
             await update_abstract(story["id"], "", "error", str(e))
         await asyncio.sleep(2)
     return processed
+
+
+async def process_story(engine: AbstractEngine, story_id: int) -> str:
+    """Immediately generate abstract for a single story by ID."""
+    story = await get_story_detail(story_id)
+    if not story or story.get("abstract_status") != "pending":
+        return "skipped"
+    if not story.get("content_raw"):
+        await update_abstract(story_id, "", "skipped", "No content available")
+        return "skipped"
+    try:
+        result = await engine.generate(title=story["title"], content=story["content_raw"])
+        await update_abstract(
+            story_id=story_id, abstract=result["abstract"] or "",
+            status=result["status"], verification_note=result["note"],
+            provider_used=result["provider"],
+        )
+        log.info("Priority abstract for story %d: %s", story_id, result["status"])
+        return result["status"]
+    except Exception as e:
+        log.error("Priority abstract failed for story %d: %s", story_id, e)
+        await update_abstract(story_id, "", "error", str(e))
+        return "error"

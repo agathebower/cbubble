@@ -77,6 +77,9 @@ const Popup = {
         if (story.abstract && story.abstract_status !== "pending") {
             loadingEl.classList.add("hidden");
             textEl.textContent = story.abstract; textEl.classList.remove("hidden");
+        } else if (story.abstract_status === "skipped") {
+            loadingEl.textContent = "No abstract available — not enough content.";
+            loadingEl.classList.remove("hidden"); textEl.classList.add("hidden");
         } else {
             loadingEl.classList.remove("hidden"); textEl.classList.add("hidden");
             await this.fetchDetail(story.id, textEl, loadingEl, badge, noteEl);
@@ -104,7 +107,16 @@ const Popup = {
                     noteEl.querySelector("small").textContent = `⚠️ ${d.verification_note}`;
                     noteEl.classList.remove("hidden");
                 }
-            } else { loadingEl.textContent = "Abstract not yet available. Check back soon."; }
+            } else {
+                const s = d.abstract_status;
+                if (s === "skipped") {
+                    loadingEl.textContent = "No abstract available — not enough content.";
+                } else if (s === "error") {
+                    loadingEl.textContent = "Abstract generation failed.";
+                } else {
+                    loadingEl.textContent = "Abstract not yet available. Check back soon.";
+                }
+            }
         } catch (e) { loadingEl.textContent = "Failed to load abstract."; console.error(e); }
     },
     close() { this.overlay.classList.add("hidden"); document.body.style.overflow = ""; this.currentStory = null; },

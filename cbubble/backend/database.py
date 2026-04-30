@@ -37,6 +37,10 @@ async def init_db():
     DB_PATH.touch(mode=0o600, exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(SCHEMA)
+        try:
+            await db.execute("ALTER TABLE stories ADD COLUMN priority INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
         await db.commit()
     log.info("Database initialized at %s", DB_PATH)
 
@@ -92,7 +96,7 @@ async def get_pending_stories(limit=10) -> list[dict]:
         rows = await db.execute_fetchall(
             """SELECT id, title, url, content_raw FROM stories
                WHERE abstract_status = 'pending' AND content_raw IS NOT NULL
-               ORDER BY fetched_at DESC LIMIT ?""", (limit,),
+               ORDER BY priority DESC, fetched_at DESC LIMIT ?""", (limit,),
         )
         return [dict(r) for r in rows]
 
@@ -106,6 +110,16 @@ async def update_abstract(story_id, abstract, status, verification_note=None,
             (abstract, status, verification_note, provider_used, story_id),
         )
         await db.commit()
+
+
+async def prioritize_story(story_id: int) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "UPDATE stories SET priority = 1 WHERE id = ? AND abstract_status = 'pending'",
+            (story_id,),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
 
 
 async def reset_errored_abstracts() -> int:

@@ -71,6 +71,7 @@ async def lifespan(app: FastAPI):
 
     llm_manager = LLMManager(config, model=model)
     abstract_engine = AbstractEngine(llm_manager, config.max_abstract_sentences)
+    app.state.abstract_engine = abstract_engine
 
     scheduler.add_job(scheduled_feed_collect, "interval",
                       minutes=config.refresh_interval_minutes,

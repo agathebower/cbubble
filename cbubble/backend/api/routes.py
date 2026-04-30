@@ -1,14 +1,16 @@
 """REST API routes."""
 
+import asyncio
 from enum import Enum
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from ..database import get_stories, get_story_detail, get_stats
+from ..database import get_stories, get_story_detail, get_stats, prioritize_story
 from ..config import load_config
 from .auth import require_api_key
+from ..workers.abstract_worker import process_story
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api")
@@ -70,6 +72,23 @@ async def list_sources(request: Request):
 @limiter.limit("30/minute")
 async def stats_endpoint(request: Request):
     return await get_stats()
+
+
+@router.post("/stories/{story_id}/prioritize")
+@limiter.limit("20/minute")
+async def prioritize_story_endpoint(request: Request, story_id: int):
+    story = await get_story_detail(story_id)
+    if not story:
+        raise HTTPException(404, "Story not found")
+    if story.get("abstract_status") != "pending":
+        raise HTTPException(400, "Story is not pending")
+    updated = await prioritize_story(story_id)
+    if not updated:
+        raise HTTPException(400, "Could not prioritize story")
+    engine = getattr(request.app.state, "abstract_engine", None)
+    if engine:
+        asyncio.create_task(process_story(engine, story_id))
+    return {"status": "queued"}
 
 
 @router.post("/reload", dependencies=[Depends(require_api_key)])

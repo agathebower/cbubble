@@ -189,7 +189,30 @@ const Feed = {
             }
         });
 
-        statusDiv.append(dot, label, bookmarkBtn);
+        if (status === "pending") {
+            const priorityBtn = document.createElement("button");
+            priorityBtn.className = "tile-prioritize";
+            priorityBtn.textContent = "⚡";
+            priorityBtn.title = "Generate abstract next";
+            priorityBtn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                priorityBtn.disabled = true;
+                priorityBtn.title = "Queued";
+                try {
+                    const resp = await fetch(`/api/stories/${story.id}/prioritize`, { method: "POST" });
+                    if (resp.ok) {
+                        label.textContent = "next ⚡";
+                    } else {
+                        priorityBtn.disabled = false;
+                    }
+                } catch {
+                    priorityBtn.disabled = false;
+                }
+            });
+            statusDiv.append(dot, label, bookmarkBtn, priorityBtn);
+        } else {
+            statusDiv.append(dot, label, bookmarkBtn);
+        }
         body.append(meta, titleEl, statusDiv);
         tile.append(imageEl, body);
 
