@@ -107,6 +107,27 @@ const Stats = {
             for (const [cat, count] of Object.entries(data.by_category || {})) {
                 html += `<div class="stats-row"><span>${cat.replace("_", " ")}</span><strong>${fmt(count)}</strong></div>`;
             }
+            if (data.llm) {
+                html += `</div><div class="stats-section"><div class="stats-section-title">Cerebras API calls</div>`;
+                html += `<div class="stats-row"><span>Last 24 h</span><strong>${fmt(data.llm.calls_24h)}</strong></div>`;
+                html += `<div class="stats-row"><span>Last 7 days</span><strong>${fmt(data.llm.calls_7d)}</strong></div>`;
+                const days = Object.entries(data.llm.by_day || {}).slice(0, 7);
+                if (days.length) {
+                    html += `<div class="stats-row" style="flex-direction:column;align-items:flex-start;gap:4px;padding-top:8px">`;
+                    html += `<span style="font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:2px">Daily (last 7 days)</span>`;
+                    const max = Math.max(...days.map(([,c]) => c), 1);
+                    for (const [day, count] of days) {
+                        const pct = Math.round(count / max * 100);
+                        html += `<div style="width:100%;display:flex;align-items:center;gap:6px;font-size:.75rem">`;
+                        html += `<span style="color:var(--text-muted);min-width:72px">${day.slice(5)}</span>`;
+                        html += `<div style="flex:1;height:6px;background:var(--border);border-radius:3px">`;
+                        html += `<div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px"></div></div>`;
+                        html += `<strong style="min-width:28px;text-align:right">${count}</strong></div>`;
+                    }
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            }
             html += `</div>`;
             content.innerHTML = html;
         } catch (e) { content.textContent = "Failed to load stats."; }

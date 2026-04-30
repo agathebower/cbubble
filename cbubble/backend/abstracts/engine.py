@@ -4,6 +4,7 @@ import re
 import logging
 from ..llm.manager import LLMManager
 from ..llm.base import LLMResponse
+from ..database import log_llm_call
 
 log = logging.getLogger("cbubble.abstracts")
 
@@ -57,14 +58,24 @@ class AbstractEngine:
         if not provider:
             return LLMResponse(text="", provider="none", model="none",
                                success=False, error="No abstract provider configured")
-        return await provider.complete(system_prompt, user_prompt)
+        result = await provider.complete(system_prompt, user_prompt)
+        try:
+            await log_llm_call(result.provider, "abstract", result.model, result.success)
+        except Exception:
+            pass
+        return result
 
     async def _call_validate(self, system_prompt, user_prompt) -> LLMResponse:
         provider = self.llm.validate_provider
         if not provider:
             return LLMResponse(text="", provider="none", model="none",
                                success=False, error="No validate provider configured")
-        return await provider.complete(system_prompt, user_prompt)
+        result = await provider.complete(system_prompt, user_prompt)
+        try:
+            await log_llm_call(result.provider, "verify", result.model, result.success)
+        except Exception:
+            pass
+        return result
 
     @staticmethod
     def _sanitize_input(text: str, max_len: int) -> str:

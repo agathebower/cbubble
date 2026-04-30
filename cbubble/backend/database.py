@@ -29,6 +29,15 @@ CREATE TABLE IF NOT EXISTS stories (
 CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(abstract_status);
 CREATE INDEX IF NOT EXISTS idx_stories_fetched ON stories(fetched_at DESC);
 CREATE INDEX IF NOT EXISTS idx_stories_url ON stories(url);
+CREATE TABLE IF NOT EXISTS llm_calls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    call_type TEXT NOT NULL,
+    model TEXT,
+    success INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_llm_calls_ts ON llm_calls(ts DESC);
 """
 
 
@@ -155,6 +164,15 @@ async def update_story_image(story_id: int, image_url: str) -> None:
         await db.commit()
 
 
+async def log_llm_call(provider: str, call_type: str, model: str | None, success: bool) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO llm_calls (ts, provider, call_type, model, success) VALUES (?, ?, ?, ?, ?)",
+            (datetime.now(timezone.utc).isoformat(), provider, call_type, model, int(success)),
+        )
+        await db.commit()
+
+
 async def get_stats() -> dict:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -166,11 +184,26 @@ async def get_stats() -> dict:
             "SELECT category, COUNT(*) as c FROM stories GROUP BY category ORDER BY c DESC"
         )
         latest = (await db.execute_fetchall("SELECT MAX(fetched_at) as t FROM stories"))[0]["t"]
+        llm_24h = (await db.execute_fetchall(
+            "SELECT COUNT(*) as c FROM llm_calls WHERE ts > datetime('now', '-1 day')"
+        ))[0]["c"]
+        llm_7d = (await db.execute_fetchall(
+            "SELECT COUNT(*) as c FROM llm_calls WHERE ts > datetime('now', '-7 days')"
+        ))[0]["c"]
+        llm_by_day = await db.execute_fetchall(
+            """SELECT date(ts) as day, COUNT(*) as c
+               FROM llm_calls GROUP BY day ORDER BY day DESC LIMIT 14"""
+        )
     return {
         "total": total,
         "by_status": {r["abstract_status"]: r["c"] for r in by_status},
         "by_category": {r["category"]: r["c"] for r in by_category},
         "latest_fetch": latest,
+        "llm": {
+            "calls_24h": llm_24h,
+            "calls_7d": llm_7d,
+            "by_day": {r["day"]: r["c"] for r in llm_by_day},
+        },
     }
 
 

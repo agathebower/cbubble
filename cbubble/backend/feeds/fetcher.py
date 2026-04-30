@@ -207,8 +207,30 @@ async def fetch_article_content(url) -> tuple[str | None, str | None]:
 
         for tag in soup(["script", "style", "nav", "footer", "header", "aside", "iframe"]):
             tag.decompose()
-        article = soup.find("article") or soup.find("main") or soup.find("div", class_="post-content")
-        text = (article or soup).get_text(separator="\n", strip=True)
+
+        # Try increasingly broad selectors for article body
+        import re as _re
+        article = (
+            soup.find("article") or
+            soup.find("main") or
+            soup.find(class_=_re.compile(
+                r"\b(post|article|entry|story|content|body)[-_]?(content|body|text|main)?\b",
+                _re.I,
+            )) or
+            soup.find(id=_re.compile(
+                r"\b(post|article|entry|story|content|body)[-_]?(content|body|text|main)?\b",
+                _re.I,
+            ))
+        )
+
+        if article:
+            text = article.get_text(separator="\n", strip=True)
+        else:
+            # Fallback: collect all <p> tags with meaningful text
+            paragraphs = [p.get_text(strip=True) for p in soup.find_all("p")]
+            meaningful = [p for p in paragraphs if len(p) > 40]
+            text = "\n".join(meaningful) if meaningful else soup.get_text(separator="\n", strip=True)
+
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         content = "\n".join(lines)[:8000]
         return (content if len(content) > 100 else None, og_image)
