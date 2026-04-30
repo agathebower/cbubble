@@ -78,8 +78,20 @@ const Popup = {
             loadingEl.classList.add("hidden");
             textEl.textContent = story.abstract; textEl.classList.remove("hidden");
         } else if (story.abstract_status === "skipped") {
-            loadingEl.textContent = "No abstract available — not enough content.";
+            loadingEl.innerHTML = `No abstract available — not enough content. <button class="retry-btn" data-id="${story.id}">↺ Retry</button>`;
             loadingEl.classList.remove("hidden"); textEl.classList.add("hidden");
+            loadingEl.querySelector(".retry-btn").addEventListener("click", async () => {
+                const btn = loadingEl.querySelector(".retry-btn");
+                btn.disabled = true; btn.textContent = "queuing…";
+                const resp = await fetch(`/api/stories/${story.id}/prioritize`, { method: "POST" });
+                if (resp.ok) {
+                    loadingEl.textContent = "Queued ⚡ — abstract will be generated shortly.";
+                    badge.textContent = "pending"; badge.className = "popup-badge pending";
+                    if (this.currentStory) this.currentStory.abstract_status = "pending";
+                } else {
+                    btn.disabled = false; btn.textContent = "↺ Retry";
+                }
+            });
         } else {
             loadingEl.classList.remove("hidden"); textEl.classList.add("hidden");
             await this.fetchDetail(story.id, textEl, loadingEl, badge, noteEl);

@@ -80,8 +80,8 @@ async def prioritize_story_endpoint(request: Request, story_id: int):
     story = await get_story_detail(story_id)
     if not story:
         raise HTTPException(404, "Story not found")
-    if story.get("abstract_status") != "pending":
-        raise HTTPException(400, "Story is not pending")
+    if story.get("abstract_status") not in ("pending", "skipped"):
+        raise HTTPException(400, "Story cannot be prioritized")
     updated = await prioritize_story(story_id)
     if not updated:
         raise HTTPException(400, "Could not prioritize story")

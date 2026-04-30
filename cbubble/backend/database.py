@@ -115,7 +115,9 @@ async def update_abstract(story_id, abstract, status, verification_note=None,
 async def prioritize_story(story_id: int) -> bool:
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            "UPDATE stories SET priority = 1 WHERE id = ? AND abstract_status = 'pending'",
+            """UPDATE stories SET abstract_status = 'pending', abstract = '',
+               verification_note = NULL, priority = 1
+               WHERE id = ? AND abstract_status IN ('pending', 'skipped')""",
             (story_id,),
         )
         await db.commit()

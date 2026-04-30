@@ -106,6 +106,9 @@ body { min-height: 100dvh; padding-top: var(--header-h); overflow-x: hidden; }
 .status-dot.skipped { background: var(--text-muted); opacity: 0.4; }
 .status-label { font-size: .7rem; color: var(--text-muted); text-transform: capitalize; }
 .tile-prioritize { background: none; border: none; cursor: pointer; font-size: .75rem; padding: 0 0 0 4px; opacity: 0.5; line-height: 1; }
+.retry-btn { background: none; border: 1px solid var(--text-muted); border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: .75rem; padding: 2px 7px; margin-left: 8px; }
+.retry-btn:hover:not(:disabled) { border-color: var(--text); color: var(--text); }
+.retry-btn:disabled { opacity: 0.4; cursor: default; }
 .tile-prioritize:hover:not(:disabled) { opacity: 1; }
 .tile-prioritize:disabled { opacity: 0.3; cursor: default; }
 
