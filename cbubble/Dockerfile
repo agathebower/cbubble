@@ -10,7 +10,7 @@ USER appuser
 
 EXPOSE 2323
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=200s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:2323/api/stories', timeout=4)" || exit 1
 
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "2323"]
