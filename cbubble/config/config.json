@@ -1,5 +1,5 @@
 {
-  "refresh_interval_minutes": 30,
+  "refresh_interval_minutes": 90,
   "max_abstract_sentences": 5,
   "stories_per_page": 20,
   "notify_keywords": ["Dumb", "critical", "zero-day", "HTB", "hackthebox", "hacktheplanet"],
