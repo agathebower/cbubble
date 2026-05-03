@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from ..database import get_stories, get_story_detail, get_stats, prioritize_story
+from ..database import get_stories, get_story_detail, get_stats, prioritize_story, reprocess_story
 from ..config import load_config
 from .auth import require_api_key
 from ..workers.abstract_worker import process_story
@@ -89,6 +89,21 @@ async def prioritize_story_endpoint(request: Request, story_id: int):
     if engine:
         asyncio.create_task(process_story(engine, story_id))
     return {"status": "queued"}
+
+
+@router.post("/stories/{story_id}/reprocess")
+@limiter.limit("10/minute")
+async def reprocess_story_endpoint(request: Request, story_id: int):
+    story = await get_story_detail(story_id)
+    if not story:
+        raise HTTPException(404, "Story not found")
+    updated = await reprocess_story(story_id)
+    if not updated:
+        raise HTTPException(400, "Could not reprocess story")
+    engine = getattr(request.app.state, "abstract_engine", None)
+    if engine:
+        asyncio.create_task(process_story(engine, story_id))
+    return {"status": "queued", "story_id": story_id}
 
 
 @router.post("/reload", dependencies=[Depends(require_api_key)])

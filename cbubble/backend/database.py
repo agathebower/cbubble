@@ -133,6 +133,19 @@ async def prioritize_story(story_id: int) -> bool:
         return cursor.rowcount > 0
 
 
+async def reprocess_story(story_id: int) -> bool:
+    """Reset a story's abstract so the worker picks it up again, regardless of current status."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            """UPDATE stories SET abstract = NULL, abstract_status = 'pending',
+               verification_note = NULL, provider_used = NULL, priority = 1
+               WHERE id = ?""",
+            (story_id,),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
+
 async def reset_errored_abstracts() -> int:
     """Reset 'error' stories back to 'pending' so they get retried."""
     async with aiosqlite.connect(DB_PATH) as db:

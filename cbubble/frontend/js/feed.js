@@ -189,6 +189,10 @@ const Feed = {
             }
         });
 
+        const abstractMissing = !story.abstract ||
+            story.abstract.trim() === "" ||
+            story.abstract === "Abstract not yet available";
+
         if (status === "pending") {
             const priorityBtn = document.createElement("button");
             priorityBtn.className = "tile-prioritize";
@@ -210,6 +214,32 @@ const Feed = {
                 }
             });
             statusDiv.append(dot, label, bookmarkBtn, priorityBtn);
+        } else if (abstractMissing && (status === "error" || status === "skipped")) {
+            const reprocessBtn = document.createElement("button");
+            reprocessBtn.className = "tile-prioritize";
+            reprocessBtn.textContent = "⚡";
+            reprocessBtn.title = "Retry abstract generation";
+            reprocessBtn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                reprocessBtn.disabled = true;
+                reprocessBtn.textContent = "⏳";
+                try {
+                    const resp = await fetch(`/api/stories/${story.id}/reprocess`, { method: "POST" });
+                    if (resp.ok) {
+                        story.abstract_status = "pending";
+                        label.textContent = "next ⚡";
+                        dot.className = "status-dot pending";
+                        setTimeout(() => App.refresh(), 3000);
+                    } else {
+                        reprocessBtn.disabled = false;
+                        reprocessBtn.textContent = "⚡";
+                    }
+                } catch {
+                    reprocessBtn.disabled = false;
+                    reprocessBtn.textContent = "⚡";
+                }
+            });
+            statusDiv.append(dot, label, bookmarkBtn, reprocessBtn);
         } else {
             statusDiv.append(dot, label, bookmarkBtn);
         }
