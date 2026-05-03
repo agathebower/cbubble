@@ -83,7 +83,7 @@ const Popup = {
             loadingEl.querySelector(".retry-btn").addEventListener("click", async () => {
                 const btn = loadingEl.querySelector(".retry-btn");
                 btn.disabled = true; btn.textContent = "queuing…";
-                const resp = await fetch(`/api/stories/${story.id}/prioritize`, { method: "POST" });
+                const resp = await fetch(`/api/stories/${story.id}/reprocess`, { method: "POST" });
                 if (resp.ok) {
                     loadingEl.textContent = "Queued ⚡ — abstract will be generated shortly.";
                     badge.textContent = "pending"; badge.className = "popup-badge pending";
@@ -121,13 +121,22 @@ const Popup = {
                 }
             } else {
                 const s = d.abstract_status;
-                if (s === "skipped") {
-                    loadingEl.textContent = "No abstract available — not enough content.";
-                } else if (s === "error") {
-                    loadingEl.textContent = "Abstract generation failed.";
-                } else {
-                    loadingEl.textContent = "Abstract not yet available. Check back soon.";
-                }
+                let msg = s === "skipped" ? "No abstract available — not enough content."
+                        : s === "error"   ? "Abstract generation failed."
+                        :                   "Abstract not yet available. Check back soon.";
+                loadingEl.innerHTML = `${msg} <button class="retry-btn" data-id="${d.id}">⚡ Retry</button>`;
+                loadingEl.querySelector(".retry-btn").addEventListener("click", async () => {
+                    const btn = loadingEl.querySelector(".retry-btn");
+                    btn.disabled = true; btn.textContent = "⏳";
+                    const resp = await fetch(`/api/stories/${d.id}/reprocess`, { method: "POST" });
+                    if (resp.ok) {
+                        loadingEl.textContent = "Queued ⚡ — abstract wird gleich generiert.";
+                        badge.textContent = "pending"; badge.className = "popup-badge pending";
+                        if (this.currentStory) this.currentStory.abstract_status = "pending";
+                    } else {
+                        btn.disabled = false; btn.textContent = "⚡ Retry";
+                    }
+                });
             }
         } catch (e) { loadingEl.textContent = "Failed to load abstract."; console.error(e); }
     },
