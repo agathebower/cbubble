@@ -191,7 +191,7 @@ const Feed = {
 
         const abstractMissing = !story.abstract ||
             story.abstract.trim() === "" ||
-            story.abstract === "Abstract not yet available";
+            story.abstract.startsWith("Abstract not yet available");
 
         if (status === "pending") {
             const priorityBtn = document.createElement("button");
