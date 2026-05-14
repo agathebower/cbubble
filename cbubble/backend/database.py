@@ -146,6 +146,19 @@ async def reprocess_story(story_id: int) -> bool:
         return cursor.rowcount > 0
 
 
+async def skip_story(story_id: int) -> bool:
+    """Mark a story as skipped — excluded from abstract generation queue."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "UPDATE stories SET abstract_status = 'skipped', abstract = '', "
+            "verification_note = 'User skipped' "
+            "WHERE id = ? AND abstract_status != 'skipped'",
+            (story_id,),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
+
 async def reset_errored_abstracts() -> int:
     """Reset 'error' stories back to 'pending' so they get retried."""
     async with aiosqlite.connect(DB_PATH) as db:

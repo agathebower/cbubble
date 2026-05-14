@@ -49,6 +49,28 @@ const Popup = {
                 }).catch(() => {});
             }
         });
+
+        document.getElementById("btn-popup-skip").addEventListener("click", async () => {
+            if (!this.currentStory) return;
+            const btn = document.getElementById("btn-popup-skip");
+            btn.disabled = true;
+            try {
+                const resp = await fetch(`/api/stories/${this.currentStory.id}/skip`, { method: "POST" });
+                if (resp.ok) {
+                    const tile = document.querySelector(`.tile[data-id="${this.currentStory.id}"]`);
+                    if (tile) {
+                        tile.style.transition = "opacity 0.25s";
+                        tile.style.opacity = "0";
+                        setTimeout(() => tile.remove(), 250);
+                    }
+                    this.close();
+                } else {
+                    btn.disabled = false;
+                }
+            } catch {
+                btn.disabled = false;
+            }
+        });
     },
     async open(story) {
         this.currentStory = story;
@@ -70,6 +92,11 @@ const Popup = {
         const isSaved = Bookmarks.has(story.id);
         bookmarkBtn.textContent = isSaved ? "★ Saved" : "🔖 Save";
         bookmarkBtn.classList.toggle("saved", isSaved);
+
+        // Skip button — hide if already skipped
+        const skipPopupBtn = document.getElementById("btn-popup-skip");
+        skipPopupBtn.disabled = false;
+        skipPopupBtn.classList.toggle("hidden", status === "skipped");
 
         // Show overlay immediately — don't wait for async fetch
         o.classList.remove("hidden"); document.body.style.overflow = "hidden";

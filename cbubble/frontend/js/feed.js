@@ -193,6 +193,27 @@ const Feed = {
             story.abstract.trim() === "" ||
             story.abstract.startsWith("Abstract not yet available");
 
+        const skipBtn = document.createElement("button");
+        skipBtn.className = "tile-skip";
+        skipBtn.textContent = "✕";
+        skipBtn.title = "Skip this story";
+        skipBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            skipBtn.disabled = true;
+            try {
+                const resp = await fetch(`/api/stories/${story.id}/skip`, { method: "POST" });
+                if (resp.ok) {
+                    tile.style.transition = "opacity 0.25s";
+                    tile.style.opacity = "0";
+                    setTimeout(() => tile.remove(), 250);
+                } else {
+                    skipBtn.disabled = false;
+                }
+            } catch {
+                skipBtn.disabled = false;
+            }
+        });
+
         if (status === "pending") {
             const priorityBtn = document.createElement("button");
             priorityBtn.className = "tile-prioritize";
@@ -213,7 +234,7 @@ const Feed = {
                     priorityBtn.disabled = false;
                 }
             });
-            statusDiv.append(dot, label, bookmarkBtn, priorityBtn);
+            statusDiv.append(dot, label, bookmarkBtn, priorityBtn, skipBtn);
         } else if (abstractMissing && (status === "error" || status === "skipped")) {
             const reprocessBtn = document.createElement("button");
             reprocessBtn.className = "tile-prioritize";
@@ -239,9 +260,17 @@ const Feed = {
                     reprocessBtn.textContent = "⚡";
                 }
             });
-            statusDiv.append(dot, label, bookmarkBtn, reprocessBtn);
+            if (status === "skipped") {
+                statusDiv.append(dot, label, bookmarkBtn, reprocessBtn);
+            } else {
+                statusDiv.append(dot, label, bookmarkBtn, reprocessBtn, skipBtn);
+            }
         } else {
-            statusDiv.append(dot, label, bookmarkBtn);
+            if (status !== "skipped") {
+                statusDiv.append(dot, label, bookmarkBtn, skipBtn);
+            } else {
+                statusDiv.append(dot, label, bookmarkBtn);
+            }
         }
         body.append(meta, titleEl, statusDiv);
         tile.append(imageEl, body);
